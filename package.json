@@ -1,0 +1,17 @@
+{
+  "name": "thoth-api",
+  "version": "0.0.0",
+  "description": "Rest API for thoth",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:dbraga/thoth-api.git"
+  },
+  "keywords": [
+    "thoth",
+    "api",
+    "node"
+  ],
+  "author": "Damiano Braga",
+  "license": "BSD"
+}
