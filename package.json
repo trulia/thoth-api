@@ -1,6 +1,6 @@
 {
   "name": "thoth-api",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Rest API for thoth",
   "main": "index.js",
   "repository": {
