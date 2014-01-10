@@ -17,6 +17,10 @@ app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:informatio
   dispatcher(req, res, 'pool', req.params.information, req.params.attribute)
 });
 
+app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
+  dispatcher(req, res, 'server', req.params.information, req.params.attribute)
+});
+
 /**
  * Builds the solr query appending different common options
  * @param  q the solr query
@@ -72,6 +76,22 @@ function poolRequestGenerator(pool, core, port, start, end, attribute){
 }
 
 /**
+ * Creates the request to be sent to solr containing pool information
+ * @param  server name of the server
+ * @param  core name of the core
+ * @param  port port number
+ * @param  start start time
+ * @param  end end time
+ * @param  attribute name of attribute or attributes that must be returned by the request
+ * @return the request
+ */
+function serverRequestGenerator(server, core, port, start, end, attribute){
+   return buildSolrOptions(encodeURIComponent('masterDocumentMin_b:true AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND masterTime_dt:[' + start +" TO " + end +"] "), 
+      encodeURIComponent('10000'), encodeURIComponent( attribute +',masterTime_dt'), 
+      encodeURIComponent('masterTime_dt asc'), null);  
+}
+
+/**
  * Re arrange the json grouping the data by hostname
  * @param  json the payload
  * @param  value the attribute that is gonna be present in each group
@@ -114,6 +134,33 @@ function poolResponseHandler(backendResp, resp, attribute){
     // Get only the docs
     json = JSON.parse(data).response.docs;
     blob = groupDataByHostname(json, attribute);
+    // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+    backendResp.header('Access-Control-Allow-Origin', "*");
+    // TODO: change to application/json ?
+    backendResp.type('application/text');
+    backendResp.json(blob);
+  });
+}
+
+/**
+ * Handle the response, modifies the json obtained and replies with a new response
+ * @param  backendResp the new response
+ * @param  resp the reponse that must be handled and modified
+ * @param  attribute the attribute that is gonna be present in each group
+ * @return the new response
+ */
+function serverResponseHandler(backendResp, resp, attribute){
+  var data ="";
+  // Fetch data
+  resp.on('data', function(chunk){
+    data += chunk;
+  });
+  // Parse and fix data
+  resp.on('end', function(){
+    // Get only the docs
+    json = JSON.parse(data).response.docs;
+    // blob = groupDataByHostname(json, attribute);
+    blob = json ;
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
     backendResp.header('Access-Control-Allow-Origin', "*");
     // TODO: change to application/json ?
@@ -168,7 +215,19 @@ function dispatcher(req, res, entity, information, attribute){
           }).on("error", function(e){});  
         }
     } 
+  } else if (entity == 'server'){
+    // Looking for server specific information
+     var server = req.params.server;
+     if (information == 'avg'){
+      // List of attributes that the the API offers for AVG
+      if (attribute == 'qtime'){        
+        http.get(serverRequestGenerator(server, core, port, start, end, 'avg_qtime_d') , function (resp) {
+          serverResponseHandler(res, resp, 'avg_qtime_d');
+        }).on("error", function(e){});    
+      }
+    }
   }
+
 }
 
 
