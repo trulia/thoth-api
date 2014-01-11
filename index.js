@@ -1,7 +1,3 @@
-// Thoth configuration
-var thoth_hostname = 'thoth';
-var thoth_port = 8983;
-
 var express = require('express');
 var http = require('http');
 
@@ -11,6 +7,10 @@ var app = express()
   , io = require('socket.io').listen(server);
 
 server.listen(3001);
+
+// Thoth configuration
+var thoth_hostname = 'thoth';
+var thoth_port = 8983;
 
 // Routes
 app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
@@ -41,7 +41,7 @@ function buildSolrOptions(q,rows,fl,sort,stats){
   if (fl != null) options.path +='&fl=' + fl;
   if (sort != null) options.path +='&sort=' + sort;
   if (stats != null) options.path +='&stats=true&stats.field=' + stats;
-  // console.log(options);
+  console.log(options);
   return options; 
 }
 
@@ -159,8 +159,11 @@ function serverResponseHandler(backendResp, resp, attribute){
   resp.on('end', function(){
     // Get only the docs
     json = JSON.parse(data).response.docs;
+    // console.log(json);
     // blob = groupDataByHostname(json, attribute);
-    blob = json ;
+    // blob = addValueIfNull(json, attribute, 0 ) ;
+    if (attribute.indexOf(',') == -1) blob = addValueIfNull(json, attribute, 0 ) ;
+    else blob = json;
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
     backendResp.header('Access-Control-Allow-Origin', "*");
     // TODO: change to application/json ?
@@ -168,6 +171,7 @@ function serverResponseHandler(backendResp, resp, attribute){
     backendResp.json(blob);
   });
 }
+
 
 /**
  * Dispatch the request and handle the response
@@ -220,12 +224,39 @@ function dispatcher(req, res, entity, information, attribute){
      var server = req.params.server;
      if (information == 'avg'){
       // List of attributes that the the API offers for AVG
-      if (attribute == 'qtime'){        
+      if (attribute == 'qtime'){  
         http.get(serverRequestGenerator(server, core, port, start, end, 'avg_qtime_d') , function (resp) {
           serverResponseHandler(res, resp, 'avg_qtime_d');
         }).on("error", function(e){});    
+      }  else if (attribute =='nqueries'){
+        http.get(serverRequestGenerator(server, core, port, start, end, 'tot-count_i') , function (resp) {
+          serverResponseHandler(res, resp, 'tot-count_i');
+        }).on("error", function(e){});    
+      } else if (attribute =='queriesOnDeck'){
+        http.get(serverRequestGenerator(server, core, port, start, end, 'avg_requestsInProgress_d') , function (resp) {
+          serverResponseHandler(res, resp, 'avg_requestsInProgress_d');
+        }).on("error", function(e){});    
       }
-    }
+    }  else if (information == 'count'){
+      // List of attributes that the the API offers for counts
+        if (attribute == 'exception'){
+          http.get(serverRequestGenerator(server, core, port, start, end, 'exceptionCount_i,tot-count_i') , function (resp) {
+            serverResponseHandler(res, resp, 'exceptionCount_i');
+          }).on("error", function(e){});   
+        } else if (attribute == 'hits'){
+          http.get(serverRequestGenerator(server, core, port, start, end, 'zeroHits-count_i,tot-count_i') , function (resp) {
+            serverResponseHandler(res, resp, 'zeroHits-count_i');
+          }).on("error", function(e){});  
+        }
+      }
+     else if (information == 'distribution') {
+      // List of attributes that the the API offers for counts
+      if (attribute == 'qtime'){  
+        http.get(serverRequestGenerator(server, core, port, start, end, 'range-0-10_i,range-10-100_i,range-100-1000_i,range-1000-OVER_i') , function (resp) {
+          serverResponseHandler(res, resp, 'range-0-10_i,range-10-100_i,range-100-1000_i,range-1000-OVER_i');
+        }).on("error", function(e){});   
+      }  
+     }
   }
 
 }
