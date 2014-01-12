@@ -45,7 +45,8 @@ Currently the api supports the retrieval of information for single servers or po
 ``` e.g:
 :start = NOW-1DAY  :end = NOW
 ```
- More information about the date syntax could be found  [here](http://lucene.apache.org/solr/4_6_0/solr-core/org/apache/solr/util/DateMathParser.html)
+
+More information about the date syntax could be found  [here](http://lucene.apache.org/solr/4_6_0/solr-core/org/apache/solr/util/DateMathParser.html)
 
 ### Pools
 
