@@ -1,3 +1,10 @@
+/*
+ * Rest api for thoth
+ * 
+ * @author Damiano Braga <damiano.braga@gmail.com>
+ */
+
+require('./environment')();
 var express = require('express');
 var http = require('http');
 
@@ -6,11 +13,12 @@ var app = express()
   , server = http.createServer(app)
   , io = require('socket.io').listen(server);
 
-server.listen(3001);
+server.listen(process.env.PORT);
 
 // Thoth configuration
-var thoth_hostname = 'thoth';
-var thoth_port = 8983;
+var thoth_hostname = process.env.THOTH_HOST;
+var thoth_port = process.env.THOTH_PORT;
+
 
 // Routes
 app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
@@ -159,9 +167,6 @@ function serverResponseHandler(backendResp, resp, attribute){
   resp.on('end', function(){
     // Get only the docs
     json = JSON.parse(data).response.docs;
-    // console.log(json);
-    // blob = groupDataByHostname(json, attribute);
-    // blob = addValueIfNull(json, attribute, 0 ) ;
     if (attribute.indexOf(',') == -1) blob = addValueIfNull(json, attribute, 0 ) ;
     else blob = json;
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
