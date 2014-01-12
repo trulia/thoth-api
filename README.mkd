@@ -21,6 +21,7 @@ It's possible to set environment variables to change the default settings
 ## Usage
 
 Currently the api supports the retrieval of information for single servers or pool of servers. This is handled by two main routes
+
 1.```/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute```
 2.```/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute```
 
