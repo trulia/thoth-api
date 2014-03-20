@@ -29,6 +29,22 @@ app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:inform
   dispatcher(req, res, 'server', req.params.information, req.params.attribute)
 });
 
+
+app.get('/api/list/:server/core/:core/port/:port/start/:start/end/:end/attribute/:attribute/page/:page/nresults/:nresults', function (req, res) {
+  dispatcherForList(req, res);
+});
+
+
+app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/ndoc/:attribute', function (req, res) {
+  console.log('here');
+  dispatcherList(req, res, 'server', req.params.attribute)
+});
+
+app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/list/:attribute/page/:page/step/:step', function (req, res) {
+  dispatcherNumberDocument(req, res, 'server', req.params.attribute, req.params.page, req.params.step)
+});
+
+
 /**
  * Builds the solr query appending different common options
  * @param  q the solr query
@@ -49,6 +65,23 @@ function buildSolrOptions(q,rows,fl,sort,stats){
   if (fl != null) options.path +='&fl=' + fl;
   if (sort != null) options.path +='&sort=' + sort;
   if (stats != null) options.path +='&stats=true&stats.field=' + stats;
+  console.log(options);
+  return options; 
+}
+
+
+function buildSolrOptions2(q,rows,fl,sort,stats,start){
+  var options = {
+    host: thoth_hostname,
+    port: thoth_port,
+    path: '/solr/select?wt=json&omitHeader=true'
+  }; 
+  if (q != null) options.path +='&q=' + q;
+  if (rows != null) options.path +='&rows=' + rows;
+  if (fl != null) options.path +='&fl=' + fl;
+  if (sort != null) options.path +='&sort=' + sort;
+  if (stats != null) options.path +='&stats=true&stats.field=' + stats;
+  if (start != null) options.path +='&start=' + start;
   console.log(options);
   return options; 
 }
@@ -99,13 +132,45 @@ function serverRequestGenerator(server, core, port, start, end, attribute){
       encodeURIComponent('masterTime_dt asc'), null);  
 }
 
+
+function exceptionListRequestGenerator(server, core, port, start, end, attribute, page, nresults){
+
+  if (attribute == 'exceptions'){
+   var opt =  buildSolrOptions(encodeURIComponent('exception_b:true AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND timestamp_dt:[' + start +" TO " + end +"] "), 
+      encodeURIComponent(nresults), encodeURIComponent( 'stackTrace_s,timestamp_dt'), 
+      encodeURIComponent('timestamp_dt asc'), null);  
+  opt.path += "&start="+page;    
+  }
+
+  return opt;
+}
+
+
+
+
+function serverRequestNumDocGenerator(server, core, port, start, end){
+   return buildSolrOptions(encodeURIComponent('source_s:ExceptionSolrQuery AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND timestamp_dt:[' + start +" TO " + end +"] "), 
+      encodeURIComponent('0'), encodeURIComponent('id'), 
+      encodeURIComponent('timestamp_dt asc'), null);  
+}
+
+
+function serverRequestListGenerator(server, core, port, start, end, page, step){
+  var p;
+  if (page==-1) p = 0 ;
+  else p = page;
+   return buildSolrOptions2(encodeURIComponent('source_s:ExceptionSolrQuery AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND timestamp_dt:[' + start +" TO " + end +"] "), 
+      encodeURIComponent(step), encodeURIComponent('id,bitmask_s,params_s,stackTrace_s'), 
+      encodeURIComponent('timestamp_dt asc'), null, encodeURIComponent(p));  
+}
+
 /**
  * Re arrange the json grouping the data by hostname
  * @param  json the payload
  * @param  value the attribute that is gonna be present in each group
  * @return re arranged json
  */
- function groupDataByHostname(json, value){
+ function groupDataByHostname(json, value, integral){
     var hostnameList = [];
     var blob = [];
     // Get all the hostnames in the response
@@ -115,8 +180,14 @@ function serverRequestGenerator(server, core, port, start, end, attribute){
     // Do the grouping, rebuild the json
     hostnameList.forEach(function(d){
       var elements = [];
+      var integralCount = 0;
       for (var i=0;i<json.length;i++) {
-        if (json[i].hostname_s == d) elements.push({"timestamp" : json[i].masterTime_dt, "value": (json[i][value] == undefined )? 0 : json[i][value] } );
+        var v = (json[i][value] == undefined )? 0 : json[i][value];
+        if (integral == true) {
+          integralCount += v;
+          v = integralCount;
+        }
+        if (json[i].hostname_s == d) elements.push({"timestamp" : json[i].masterTime_dt, "value": v } );
       }
       var element = { "hostname" : d, "values": elements };       
       blob.push(element);  
@@ -141,7 +212,27 @@ function poolResponseHandler(backendResp, resp, attribute){
   resp.on('end', function(){
     // Get only the docs
     json = JSON.parse(data).response.docs;
-    blob = groupDataByHostname(json, attribute);
+    blob = groupDataByHostname(json, attribute, false);
+    // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+    backendResp.header('Access-Control-Allow-Origin', "*");
+    // TODO: change to application/json ?
+    backendResp.type('application/text');
+    backendResp.json(blob);
+  });
+}
+
+
+function poolIntegralResponseHandler(backendResp, resp, attribute){
+  var data ="";
+  // Fetch data
+  resp.on('data', function(chunk){
+    data += chunk;
+  });
+  // Parse and fix data
+  resp.on('end', function(){
+    // Get only the docs
+    json = JSON.parse(data).response.docs;
+    blob = groupDataByHostname(json, attribute, true);
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
     backendResp.header('Access-Control-Allow-Origin', "*");
     // TODO: change to application/json ?
@@ -177,6 +268,101 @@ function serverResponseHandler(backendResp, resp, attribute){
   });
 }
 
+
+function serverResponseListHandler(backendResp, resp){
+  var data ="";
+  // Fetch data
+  resp.on('data', function(chunk){
+    data += chunk;
+  });
+  // Parse and fix data
+  resp.on('end', function(){
+    // Get only the docs
+    json = JSON.parse(data).response.docs;
+    // if (attribute.indexOf(',') == -1) blob = addValueIfNull(json, attribute, 0 ) ;
+    blob = json;
+    // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+    backendResp.header('Access-Control-Allow-Origin', "*");
+    // TODO: change to application/json ?
+    backendResp.type('application/text');
+    backendResp.json(blob);
+  });
+}
+
+/**
+ * Handle the response, modifies the json obtained and replies with a new response
+ * @param  backendResp the new response
+ * @param  resp the reponse that must be handled and modified
+ * @param  attribute the attribute that is gonna be present in each group
+ * @return the new response
+ */
+function serverIntegralResponseHandler(backendResp, resp, attribute){
+  var data ="";
+  // Fetch data
+  resp.on('data', function(chunk){
+    data += chunk;
+  });
+  // Parse and fix data
+  resp.on('end', function(){
+    // Get only the docs
+    json = JSON.parse(data).response.docs;
+    // if (attribute.indexOf(',') == -1) blob = addValueIfNull(json, attribute, 0 ) ;
+    // else blob = json;
+
+    var blob = json;
+    var integral = 0 ;
+    for (var i=0; i< json.length; i++){
+      integral += parseInt(json[i][attribute]); 
+      blob[i].masterTime_dt = json[i].masterTime_dt;
+      blob[i].value = integral; 
+      delete blob[i][attribute];
+      // blob[i][attribute] = integral; 
+    }
+
+    // console.log(blob);
+    // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+    backendResp.header('Access-Control-Allow-Origin', "*");
+    // TODO: change to application/json ?
+    backendResp.type('application/text');
+    // console.log(JSON.parse(json));
+    backendResp.json(json);
+  });
+}
+
+
+function dispatcherNumberDocument(req, res, entity, attribute){
+    var core = req.params.core;
+  var port = req.params.port;
+  var start = req.params.start;
+  var end = req.params.end;
+  var server = req.params.server;
+
+
+      // List of attributes that the the API offers for counts
+      if (attribute == 'exception'){  
+        http.get(serverRequestNumDocGenerator(server, core, port, start, end) , function (resp) {
+          serverResponseListHandler(res, resp);
+        }).on("error", function(e){});  
+        
+      }  
+}
+
+function dispatcherList(req, res, entity, attribute, page, step){
+    var core = req.params.core;
+  var port = req.params.port;
+  var start = req.params.start;
+  var end = req.params.end;
+  var server = req.params.server;
+
+
+      // List of attributes that the the API offers for counts
+      if (attribute == 'exception'){  
+        http.get(serverRequestListGenerator(server, core, port, start, end, page, step) , function (resp) {
+          serverResponseListHandler(res, resp);
+        }).on("error", function(e){});  
+        
+      }  
+}
 
 /**
  * Dispatch the request and handle the response
@@ -223,7 +409,19 @@ function dispatcher(req, res, entity, information, attribute){
             poolResponseHandler(res, resp, 'zeroHits-count_i');
           }).on("error", function(e){});  
         }
-    } 
+    } else if (information == 'integral'){
+      // List of attributes that the the API offers for integral
+        if (attribute == 'nqueries'){
+          http.get(poolRequestGenerator(pool, core, port, start, end, 'tot-count_i') , function (resp) {
+            poolIntegralResponseHandler(res, resp, 'tot-count_i');
+          }).on("error", function(e){});    
+        }
+        if (attribute == 'exception'){
+          http.get(poolRequestGenerator(pool, core, port, start, end, 'exceptionCount_i') , function (resp) {
+            poolIntegralResponseHandler(res, resp, 'exceptionCount_i');
+          }).on("error", function(e){});    
+        }        
+      } 
   } else if (entity == 'server'){
     // Looking for server specific information
      var server = req.params.server;
@@ -253,6 +451,18 @@ function dispatcher(req, res, entity, information, attribute){
             serverResponseHandler(res, resp, 'zeroHits-count_i');
           }).on("error", function(e){});  
         }
+      }  else if (information == 'integral'){
+      // List of attributes that the the API offers for integral
+        if (attribute == 'nqueries'){
+          http.get(serverRequestGenerator(server, core, port, start, end, 'tot-count_i') , function (resp) {
+            serverIntegralResponseHandler(res, resp, 'tot-count_i');
+          }).on("error", function(e){});    
+        }
+        if (attribute == 'exception'){
+          http.get(serverRequestGenerator(server, core, port, start, end, 'exceptionCount_i') , function (resp) {
+            serverIntegralResponseHandler(res, resp, 'exceptionCount_i');
+          }).on("error", function(e){});    
+        }        
       }
      else if (information == 'distribution') {
       // List of attributes that the the API offers for counts
@@ -261,9 +471,63 @@ function dispatcher(req, res, entity, information, attribute){
           serverResponseHandler(res, resp, 'range-0-10_i,range-10-100_i,range-100-1000_i,range-1000-OVER_i');
         }).on("error", function(e){});   
       }  
-     }
+     }  
   }
+}
+
+
+  function dispatcherForList(req, res){
+  var core = req.params.core;
+  var port = req.params.port;
+  var start = req.params.start;
+  var end = req.params.end;
+
+     var attribute = req.params.attribute;
+
+     var server = req.params.server;
+     var page = req.params.page;
+     var nresults = req.params.nresults;
+
+      http.get(exceptionListRequestGenerator(server, core, port, start, end, attribute,page, nresults) , function (resp) {
+        exceptionListResponseHandler(res, resp);
+      }).on("error", function(e){});    
+
+ 
+
+
+
+
+
 
 }
 
+
+function exceptionListResponseHandler(backendResp, resp){
+  var data ="";
+  // Fetch data
+  resp.on('data', function(chunk){
+    data += chunk;
+  });
+  // Parse and fix data
+  resp.on('end', function(){
+    // Get only the docs
+    json = JSON.parse(data).response;
+    var numFound = json.numFound;
+    json = JSON.parse(data).response.docs;
+    
+    // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+    backendResp.header('Access-Control-Allow-Origin', "*");
+    // TODO: change to application/json ?
+    backendResp.type('application/text');
+    json.numFound = numFound;
+    var uberJson = {
+      "results": {
+        "total results" : numFound,
+        "results returned": json.length,
+        "values": json
+      }
+    }
+    backendResp.json(uberJson);
+  });
+}
 
