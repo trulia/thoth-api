@@ -14,7 +14,8 @@
   ],
     "dependencies": {
       "express": ">=3.0.6",
-      "socket.io": ">=0.9.13"
+      "socket.io": ">=0.9.13",
+      "nodemon":"=1.0.17"
   },  
   "author": "Damiano Braga",
   "license": "BSD"
