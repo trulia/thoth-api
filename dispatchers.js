@@ -42,6 +42,47 @@ backendResp.json(
 
 }
 
+function listJsonResponse(backendResp, resp, attribute){
+  try{
+    var data ="";
+    var blob = "";
+    // Fetch data
+    resp.on('data', function(chunk){
+      data += chunk;
+    });
+    // Parse and fix data
+    resp.on('end', function(){
+      try {
+        // Get only the docs
+        json = JSON.parse(data).facet_counts;
+        var facet_fields = json.facet_fields[attribute];
+        var list = [];
+        for (var i=0;i<facet_fields.length;i++){
+          if (i%2 === 0) list.push(facet_fields[i]);
+        }
+          // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        backendResp.header('Access-Control-Allow-Origin', "*");
+        // backendResp.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+        backendResp.json(
+          {"numFound" : list.length, "list"  : list }
+        );   
+      } catch(err){
+        backendResp.status(404).send('Data not found. Most probably wrong query was sent to the thoth index' + err);
+      }
+    });
+  }
+  catch(err){
+      backendResp.status(503).send('Thoth index not available' + err);
+  }
+
+
+
+
+
+
+}
+
 
 function prepareJsonResponse(backendResp, resp, attribute, integral){
   try{
@@ -151,6 +192,24 @@ function createSolrServerRequest(req, filter){
 }
 
 
+function createSolrListRequest(req, filter){
+  // var server = req.params.server;
+  // var core = req.params.core;
+  // var port = req.params.port;
+  // var start = req.params.start;
+  // var end = req.params.end;
+  var solrQueryInformation = {
+    "q": '*:*',
+    "rows": 0,
+    "facet": true,
+    "facet.field": filter,
+    "facet.limit": 1000
+  };
+    // solrQueryInformation.fl =  filter +',masterTime_dt' ;
+    return solrQueryInformation;
+}
+
+
 function createSolrPoolRequest(req, filter){
   var pool = req.params.pool;
   var core = req.params.core;
@@ -216,7 +275,26 @@ module.exports = {
     if (entity === 'pool'){
       module.exports.dispatchPool(req, res);
     }
+    if (entity === 'list'){
+      module.exports.dispatchList(req, res);
+    }
 	},
+
+  dispatchList: function (req, res) {
+    var attribute = req.params.attribute;
+    var filter ="";
+
+    if (attribute==="servers") filter = "hostname_s";
+    if (attribute==="pools") filter = "pool_s";
+    if (attribute==="cores") filter = "coreName_s";
+    if (attribute==="ports") filter = "port_i";
+
+    http.get(prepareHttpRequest(createSolrListRequest(req, filter)), function (resp){
+      listJsonResponse(res, resp, filter);
+    }).on("error", function(e){
+        console.log(e);
+      });
+  },
 
   dispatchPool: function (req, res) {
 

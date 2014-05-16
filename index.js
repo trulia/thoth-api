@@ -31,3 +31,8 @@ app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:inform
 app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
   dispatcher.dispatch(req, res, 'pool')
 });
+
+// Infos
+app.get('/api/list/:attribute', function (req, res) {
+  dispatcher.dispatch(req, res, 'list')
+});
