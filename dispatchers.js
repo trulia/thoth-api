@@ -8,6 +8,86 @@ var querystring = require('querystring');
 var thoth_hostname = process.env.THOTH_HOST;
 var thoth_port = process.env.THOTH_PORT;
 
+// function isServerInJson(server,array){
+//   for (var i=0; i<array.length; i++){
+//     console.log("isServerInJson: " + array.key + "   " + server)
+//     if (array.hostname == server) return i;
+//   }
+//   return -1;
+// }
+function pushIfNotPresent(element, array){
+  var present = false;
+  var arr = array;
+  for (var i=0;i<array.length;i++){
+    if (array[i]==element) present = true;
+  }
+  if (!present){
+    arr.push(element);
+  }
+  return arr;
+}
+
+
+function poolJsonResponse(backendResp, resp, attribute, integral){
+  try{
+    var data ="";
+    var blob = "";
+    // Fetch data
+    resp.on('data', function(chunk){
+      data += chunk;
+    });
+    // Parse and fix data
+    resp.on('end', function(){
+      try {
+        // Get only the docs
+        json = JSON.parse(data).response;
+        var docs = json.docs;
+        // console.log(docs);
+
+        var servers = [];
+        var info = [];
+        var timestamp;
+        var value;
+        var tot = [];
+
+
+        for (var i=0; i<docs.length;i++){
+          var hostname = docs[i]['hostname_s'];
+          pushIfNotPresent(hostname, servers);
+        }        
+
+        for (var i=0; i<servers.length; i++){
+          var val =  []; 
+          for (var j=0; j<docs.length;j++){
+             
+            if (docs[j]['hostname_s'] == servers[i]){
+              var value = docs[j][attribute];
+              var timestamp = docs[j]['masterTime_dt'];
+              val.push([timestamp, value]);
+            }
+          }
+          tot.push({"key": servers[i], "values": val});
+        }
+          // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        backendResp.header('Access-Control-Allow-Origin', "*");
+        // backendResp.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+        backendResp.json(
+          tot 
+        );   
+      } catch(err){
+        backendResp.status(404).send('Data not found. Most probably wrong query was sent to the thoth index' + err);
+      }
+    });
+  }
+  catch(err){
+      backendResp.status(503).send('Thoth index not available' + err);
+  }
+
+
+}
+
+
 function mockPoolJsonResponse(backendResp, resp, attribute, integral){
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
   backendResp.header('Access-Control-Allow-Origin', "*");
@@ -221,7 +301,7 @@ function createSolrPoolRequest(req, filter){
     "rows": 10000,
     "sort": 'masterTime_dt asc'
   };
-  solrQueryInformation.fl =  filter +',masterTime_dt' ;
+  solrQueryInformation.fl =  filter +',masterTime_dt,hostname_s' ;
   console.log(solrQueryInformation);
   return solrQueryInformation;
 }
@@ -321,7 +401,7 @@ module.exports = {
     }
 
     http.get(prepareHttpRequest(createSolrPoolRequest(req, filter)), function (resp) {
-      mockPoolJsonResponse(res, resp, jsonFieldWithValue, integral);
+      poolJsonResponse(res, resp, jsonFieldWithValue, integral);
     }).on("error", function(e){
         console.log(e);
       });
