@@ -87,7 +87,111 @@ function poolJsonResponse(backendResp, resp, attribute, integral){
 
 }
 
+function realtimeJsonResponse(backendResp, resp, attribute, integral){
+  try{
+    var data ="";
+    var blob = "";
+    // Fetch data
+    resp.on('data', function(chunk){
+      data += chunk;
+    });
+    // Parse and fix data
+    resp.on('end', function(){
+      try {
+        // // Get only the docs
+        json = JSON.parse(data).stats;
+        var qtime_stats = json.stats_fields.qtime_i.mean;
+        console.log(qtime_stats);
 
+        // var servers = [];
+        // var info = [];
+        // var timestamp;
+        // var value;
+        // var tot = [];
+
+
+        // for (var i=0; i<docs.length;i++){
+        //   var hostname = docs[i]['hostname_s'];
+        //   pushIfNotPresent(hostname, servers);
+        // }        
+
+        // for (var i=0; i<servers.length; i++){
+        //   var val =  []; 
+        //   for (var j=0; j<docs.length;j++){
+             
+        //     if (docs[j]['hostname_s'] == servers[i]){
+        //       var value = docs[j][attribute];
+        //       var timestamp = docs[j]['masterTime_dt'];
+        //       val.push([timestamp, value]);
+        //     }
+        //   }
+        //   tot.push({"key": servers[i], "values": val});
+        // }
+        // 
+        // 
+        var el = {
+  "nqueries": {
+    "avg": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 100
+    },
+    "integral": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": json.stats_fields.qtime_i.count
+    }
+  },
+  "queriesOnDeck": {
+    "avg": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 9721
+    }
+  },
+  "exception": {
+    "count": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 9721
+    },
+    "integral": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 6450
+    }
+  },
+  "zeroHits": {
+    "count": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 9721
+    },
+    "integral": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": 9721
+    }
+  },
+  "qtime": {
+    "avg": {
+      "timestamp": "2014-03-20T01:45:01Z",
+      "value": qtime_stats
+    }
+  }
+}
+
+          // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        backendResp.header('Access-Control-Allow-Origin', "*");
+        // backendResp.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+        backendResp.json(
+          el 
+        );   
+      } catch(err){
+        backendResp.status(404).send('Data not found. Most probably wrong query was sent to the thoth index' + err);
+      }
+    });
+  }
+  catch(err){
+      backendResp.status(503).send('Thoth index not available' + err);
+  }
+
+
+}
 function mockPoolJsonResponse(backendResp, resp, attribute, integral){
     // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
   backendResp.header('Access-Control-Allow-Origin', "*");
@@ -255,6 +359,50 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
 }
 
 
+function prepareListInfoJsonResponse(backendResp, resp, attribute, integral){
+  try{
+    var data ="";
+    var blob = "";
+    // Fetch data
+    resp.on('data', function(chunk){
+      data += chunk;
+    });
+    // Parse and fix data
+    resp.on('end', function(){
+      try {
+        // // Get only the docs
+        json = JSON.parse(data).response;
+        var docs = json.docs;
+        var numFound = json.numFound;
+         blob = docs;
+          for (var i=0;i<blob.length;i++){
+            blob[i].timestamp = blob[i]['date_dt'];
+            delete blob[i]['date_dt'];
+            delete blob[i]['timestamp_dt'];
+            blob[i].qtime = blob[i]['qtime_i'];
+            delete blob[i]['qtime_i'];
+            blob[i].query = blob[i]['params_s'];
+            delete blob[i]['params_s'];
+          } 
+
+        // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        backendResp.header('Access-Control-Allow-Origin', "*");
+        // backendResp.header("Access-Control-Allow-Headers", "X-Requested-With");
+        // TODO: change to application/json ?
+        backendResp.type('application/text');
+        backendResp.json(
+          {"numFound" : numFound, "values"  : blob }
+        );   
+      } catch(err){
+        backendResp.status(404).send('Data not found. Most probably wrong query was sent to the thoth index' + err);
+      }
+    });
+  }
+  catch(err){
+      backendResp.status(503).send('Thoth index not available' + err);
+  }
+}
+
 
 function createSolrServerRequest(req, filter){
 	var server = req.params.server;
@@ -268,11 +416,59 @@ function createSolrServerRequest(req, filter){
 	  "sort": 'masterTime_dt asc'
 	};
     solrQueryInformation.fl =  filter +',masterTime_dt' ;
+    console.log(solrQueryInformation);
+    return solrQueryInformation;
+}
+
+function createListInfoServerRequest(req, filter){
+  var server = req.params.server;
+  var core = req.params.core;
+  var port = req.params.port;
+  var start = req.params.start;
+  var end = req.params.end;
+  var page = req.params.page;
+  var attribute = req.params.attribute;
+
+  var listType;
+  var sortParam;
+  if (attribute == 'slowqueries'){
+    listType = 'slowQueryDocument_b';
+    sortParam = 'qtime_i desc';
+  } else{
+    listType = 'exception_b';
+    sortParam = 'date_dt desc';
+  }
+
+  var solrQueryInformation = {
+    "q": listType + ':true AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND date_dt:[' + start +' TO ' + end +'] ',
+    "rows": 12,
+    "sort": sortParam,
+    "start" : page*12
+  };
+    solrQueryInformation.fl =  filter +',date_dt' ;
+    console.log(solrQueryInformation);
+    return solrQueryInformation;
+}
+
+function createSolrRealtimeRequest(req, filter){
+  var server = req.params.server;
+  var core = req.params.core;
+  var port = req.params.port;
+  var start = req.params.start;
+  var end = req.params.end;
+  var solrQueryInformation = {
+    "q": 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port,
+    "rows": 0,
+    // "sort": 'masterTime_dt asc',
+    "stats": true,
+    "stats.field": "qtime_i"
+  };
+    solrQueryInformation.fl =  filter +',masterTime_dt' ;
     return solrQueryInformation;
 }
 
 
-function createSolrListRequest(req, filter){
+function createListRequest(req, filter){
   // var server = req.params.server;
   // var core = req.params.core;
   // var port = req.params.port;
@@ -347,6 +543,31 @@ function prepareHttpRequest(solrOptions){
 	return requestOptions;
 }
 
+
+function prepareRealtimeHttpRequest(solrOptions){
+  var requestOptions = {}
+
+  requestOptions.host = thoth_hostname;
+  requestOptions.port = thoth_port;
+  requestOptions.path = '/solr/collection1/select?';
+
+  var solrQueryOptions = {};
+  solrQueryOptions.wt = 'json';
+  solrQueryOptions.omitHeader = true
+
+  for (var key in solrOptions) {
+  if (solrOptions.hasOwnProperty(key)) {
+    var value = solrOptions[key];
+    if (value != null ){
+      solrQueryOptions[key] = value ;
+    }
+  }
+  }
+  requestOptions.path += querystring.stringify(solrQueryOptions);
+  console.log(requestOptions);
+  return requestOptions;
+}
+
 module.exports = {
 	dispatch: function(req, res, entity){
 	  if (entity === 'server'){
@@ -358,6 +579,9 @@ module.exports = {
     if (entity === 'list'){
       module.exports.dispatchList(req, res);
     }
+    if (entity === 'realtime'){
+      module.exports.dispatchRealtime(req, res);
+    }    
 	},
 
   dispatchList: function (req, res) {
@@ -369,13 +593,27 @@ module.exports = {
     if (attribute==="cores") filter = "coreName_s";
     if (attribute==="ports") filter = "port_i";
 
-    http.get(prepareHttpRequest(createSolrListRequest(req, filter)), function (resp){
+    http.get(prepareHttpRequest(createListRequest(req, filter)), function (resp){
       listJsonResponse(res, resp, filter);
     }).on("error", function(e){
         console.log(e);
       });
   },
+  dispatchRealtime: function (req, res) {
+    var attribute = req.params.attribute;
+    var filter ="";
 
+    // if (attribute==="servers") filter = "hostname_s";
+    // if (attribute==="pools") filter = "pool_s";
+    // if (attribute==="cores") filter = "coreName_s";
+    // if (attribute==="ports") filter = "port_i";
+
+    http.get(prepareRealtimeHttpRequest(createSolrRealtimeRequest(req, filter)), function (resp){
+      realtimeJsonResponse(res, resp, filter);
+    }).on("error", function(e){
+        console.log(e);
+      });
+  },
   dispatchPool: function (req, res) {
 
     var information = req.params.information;
@@ -414,33 +652,45 @@ module.exports = {
 		var filter,jsonFieldWithValue;
 		var integral = false;
 
-		if (information == 'avg'){
-			filter = thothFieldsMappings.avg[attribute];
-			jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
-		}
+    if (information == 'list'){
+      filter = thothFieldsMappings.slowqueries;
+      http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
+        prepareListInfoJsonResponse(res, resp, jsonFieldWithValue, integral);
+      }).on("error", function(e){
+        console.log(e);
+      });   
 
-	  if (information == 'count'){
-	    filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
-	    jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
-	  }
+    } else {
 
-	  if (information == 'integral'){
-	    filter = thothFieldsMappings.integral[attribute];
-	    jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
-	    integral = true;
-	  }
+      if (information == 'avg'){
+        filter = thothFieldsMappings.avg[attribute];
+        jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
+      }
 
-    if (information == 'distribution'){
-      filter = thothFieldsMappings.distribution[attribute];
-      jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
+      if (information == 'count'){
+        filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
+        jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
+      }
+
+      if (information == 'integral'){
+        filter = thothFieldsMappings.integral[attribute];
+        jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
+        integral = true;
+      }
+
+      if (information == 'distribution'){
+        filter = thothFieldsMappings.distribution[attribute];
+        jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
+      }
+
+    http.get(prepareHttpRequest(createSolrServerRequest(req, filter)), function (resp) {
+      prepareJsonResponse(res, resp, jsonFieldWithValue, integral);
+    }).on("error", function(e){
+      console.log(e);
+    });   
+
     }
-
-	  http.get(prepareHttpRequest(createSolrServerRequest(req, filter)), function (resp) {
-	    prepareJsonResponse(res, resp, jsonFieldWithValue, integral);
-	  }).on("error", function(e){
-	    console.log(e);
-	  });   
-	}
+  }
 
 };
 

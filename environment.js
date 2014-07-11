@@ -10,6 +10,6 @@ module.exports = function () {
      */
     process.env.PORT = process.env.PORT || 3001;
     process.env.THOTH_PORT = process.env.THOTH_PORT || '8983';
-    process.env.THOTH_HOST = process.env.THOTH_HOST || 'thoth';
+    process.env.THOTH_HOST = process.env.THOTH_HOST || '172.23.13.108';
  
 };

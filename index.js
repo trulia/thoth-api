@@ -27,6 +27,11 @@ app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:inform
   dispatcher.dispatch(req, res, 'server')
 });
 
+app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute/:page', function (req, res) {
+  dispatcher.dispatch(req, res, 'server')
+});
+
+
 // Pools
 app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
   dispatcher.dispatch(req, res, 'pool')
@@ -36,3 +41,10 @@ app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:informatio
 app.get('/api/list/:attribute', function (req, res) {
   dispatcher.dispatch(req, res, 'list')
 });
+
+// Infos
+app.get('/api/realtime/:server/core/:core/port/:port/:information/:attribute', function (req, res) {
+  dispatcher.dispatch(req, res, 'realtime')
+});
+
+
