@@ -7,11 +7,12 @@ module.exports = function () {
     },
     count: {
       exception: 'exceptionCount_i',
-      zeroHits: 'zeroHits-count_i'
+      zeroHits: 'zeroHits-count_i',
+      nqueries: 'tot-count_i'
     },
     integral: {
       exception: 'exceptionCount_i',
-      nqueries: 'avg_qtime_d',
+      nqueries: 'tot-count_i',
       zeroHits: 'zeroHits-count_i'
     },
     distribution: {
