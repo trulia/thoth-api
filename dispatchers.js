@@ -101,7 +101,7 @@ function realtimeJsonResponse(backendResp, resp, attribute, integral){
         // // Get only the docs
         json = JSON.parse(data).stats;
         var qtime_stats = json.stats_fields.qtime_i.mean;
-        console.log(qtime_stats);
+        // console.log(qtime_stats);
 
         // var servers = [];
         // var info = [];
@@ -375,12 +375,20 @@ function prepareListInfoJsonResponse(backendResp, resp, attribute, integral){
         var docs = json.docs;
         var numFound = json.numFound;
          blob = docs;
+         // console.log(blob);
           for (var i=0;i<blob.length;i++){
             blob[i].timestamp = blob[i]['date_dt'];
             delete blob[i]['date_dt'];
             delete blob[i]['timestamp_dt'];
-            blob[i].qtime = blob[i]['qtime_i'];
-            delete blob[i]['qtime_i'];
+            if (attribute == 'slowqueries'){
+              blob[i].qtime = blob[i]['qtime_i'];
+              delete blob[i]['qtime_i'];
+            }
+            if (attribute == 'exception'){
+              blob[i].exception = blob[i]['stackTrace_s'];
+              delete blob[i]['stackTrace_s'];
+            }
+           
             blob[i].query = blob[i]['params_s'];
             delete blob[i]['params_s'];
           } 
@@ -416,7 +424,7 @@ function createSolrServerRequest(req, filter){
 	  "sort": 'masterTime_dt asc'
 	};
     solrQueryInformation.fl =  filter +',masterTime_dt' ;
-    console.log(solrQueryInformation);
+    // console.log(solrQueryInformation);
     return solrQueryInformation;
 }
 
@@ -436,17 +444,17 @@ function createListInfoServerRequest(req, filter){
     sortParam = 'qtime_i desc';
   } else{
     listType = 'exception_b';
-    sortParam = 'date_dt desc';
+    sortParam = 'timestamp_dt desc';
   }
 
   var solrQueryInformation = {
-    "q": listType + ':true AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND date_dt:[' + start +' TO ' + end +'] ',
+    "q": listType + ':true AND hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND date_dt:[' + start +' TO ' + end +']',
     "rows": 12,
     "sort": sortParam,
     "start" : page*12
   };
     solrQueryInformation.fl =  filter +',date_dt' ;
-    console.log(solrQueryInformation);
+    // console.log(solrQueryInformation);
     return solrQueryInformation;
 }
 
@@ -498,7 +506,7 @@ function createSolrPoolRequest(req, filter){
     "sort": 'masterTime_dt asc'
   };
   solrQueryInformation.fl =  filter +',masterTime_dt,hostname_s' ;
-  console.log(solrQueryInformation);
+  // console.log(solrQueryInformation);
   return solrQueryInformation;
 }
 
@@ -564,7 +572,7 @@ function prepareRealtimeHttpRequest(solrOptions){
   }
   }
   requestOptions.path += querystring.stringify(solrQueryOptions);
-  console.log(requestOptions);
+  // console.log(requestOptions);
   return requestOptions;
 }
 
@@ -653,9 +661,16 @@ module.exports = {
 		var integral = false;
 
     if (information == 'list'){
-      filter = thothFieldsMappings.slowqueries;
+
+      if (req.params.attribute == "slowqueries"){
+        filter = thothFieldsMappings.slowqueries;        
+      }
+      if (req.params.attribute == "exception"){
+        filter = thothFieldsMappings.exception;        
+      }
+
       http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
-        prepareListInfoJsonResponse(res, resp, jsonFieldWithValue, integral);
+        prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
       }).on("error", function(e){
         console.log(e);
       });   
