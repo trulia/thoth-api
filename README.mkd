@@ -1,5 +1,5 @@
-![Image](../master/img/thoth-logo.png?raw=true)
-# Thoth Api
+![Thoth](/../master/img/thoth-logo.png?raw=true)
+# Thoth Api 
 A rest-like api that provides an easy retrieval of information from thoth
 
 ## Requirements
