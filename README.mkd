@@ -1,6 +1,6 @@
 ![Thoth](/../master/img/thoth-logo.png?raw=true)
 # Thoth Api 
-A rest-like api that provides an easy retrieval of information from thoth
+A rest-like api that provides an easy query and retrieval of information from Thoth
 
 ## Requirements
 - Thoth
