@@ -15,6 +15,141 @@ var thoth_port = process.env.THOTH_PORT;
 //   }
 //   return -1;
 // }
+
+module.exports = {
+  dispatch: function(req, res, entity){
+    if (entity === 'server'){
+      module.exports.dispatchServer(req, res);
+    }
+    if (entity === 'pool'){
+      module.exports.dispatchPool(req, res);
+    }
+    if (entity === 'list'){
+      module.exports.dispatchList(req, res);
+    }
+    if (entity === 'realtime'){
+      module.exports.dispatchRealtime(req, res);
+    }    
+  },
+
+  dispatchList: function (req, res) {
+    var attribute = req.params.attribute;
+    var filter ="";
+
+    if (attribute==="servers") filter = "hostname_s";
+    if (attribute==="pools") filter = "pool_s";
+    if (attribute==="cores") filter = "coreName_s";
+    if (attribute==="ports") filter = "port_i";
+
+    http.get(prepareHttpRequest(createListRequest(req, filter)), function (resp){
+      listJsonResponse(res, resp, filter);
+    }).on("error", function(e){
+        console.log(e);
+      });
+  },
+  dispatchRealtime: function (req, res) {
+    var attribute = req.params.attribute;
+    var filter ="";
+
+    // if (attribute==="servers") filter = "hostname_s";
+    // if (attribute==="pools") filter = "pool_s";
+    // if (attribute==="cores") filter = "coreName_s";
+    // if (attribute==="ports") filter = "port_i";
+
+    http.get(prepareRealtimeHttpRequest(createSolrRealtimeRequest(req, filter)), function (resp){
+      realtimeJsonResponse(res, resp, filter);
+    }).on("error", function(e){
+        console.log(e);
+      });
+  },
+  dispatchPool: function (req, res) {
+
+    var information = req.params.information;
+    var attribute = req.params.attribute;
+    var filter,jsonFieldWithValue;
+    var integral = false;
+
+    if (information == 'avg'){
+      filter = thothFieldsMappings.avg[attribute];
+      jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
+    }
+
+    
+    if (information == 'count'){
+      filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
+      jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
+    }
+
+    if (information == 'integral'){
+      filter = thothFieldsMappings.integral[attribute];
+      jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
+      integral = true;
+    }
+
+    http.get(prepareHttpRequest(createSolrPoolRequest(req, filter)), function (resp) {
+      poolJsonResponse(res, resp, jsonFieldWithValue, integral);
+    }).on("error", function(e){
+        console.log(e);
+      });
+
+  },
+
+  dispatchServer: function(req,res){
+    var information = req.params.information;
+    var attribute = req.params.attribute;
+    var filter,jsonFieldWithValue;
+    var integral = false;
+
+    if (information == 'list'){
+
+      if (req.params.attribute == "slowqueries"){
+        filter = thothFieldsMappings.slowqueries;        
+      }
+      if (req.params.attribute == "exception"){
+        filter = thothFieldsMappings.exception;        
+      }
+
+      http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
+        prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
+      }).on("error", function(e){
+        console.log(e);
+      });   
+
+    } else {
+
+      if (information == 'avg'){
+        filter = thothFieldsMappings.avg[attribute];
+        jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
+      }
+
+      if (information == 'count'){
+        filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
+        jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
+      }
+
+      if (information == 'integral'){
+        filter = thothFieldsMappings.integral[attribute];
+        jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
+        integral = true;
+      }
+
+      if (information == 'distribution'){
+        filter = thothFieldsMappings.distribution[attribute];
+        jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
+      }
+
+    http.get(prepareHttpRequest(createSolrServerRequest(req, filter)), function (resp) {
+      prepareJsonResponse(res, resp, jsonFieldWithValue, integral);
+    }).on("error", function(e){
+      console.log(e);
+    });   
+
+    }
+  }
+
+};
+
+
 function pushIfNotPresent(element, array){
   var present = false;
   var arr = array;
@@ -576,136 +711,4 @@ function prepareRealtimeHttpRequest(solrOptions){
   return requestOptions;
 }
 
-module.exports = {
-	dispatch: function(req, res, entity){
-	  if (entity === 'server'){
-	    module.exports.dispatchServer(req, res);
-	  }
-    if (entity === 'pool'){
-      module.exports.dispatchPool(req, res);
-    }
-    if (entity === 'list'){
-      module.exports.dispatchList(req, res);
-    }
-    if (entity === 'realtime'){
-      module.exports.dispatchRealtime(req, res);
-    }    
-	},
-
-  dispatchList: function (req, res) {
-    var attribute = req.params.attribute;
-    var filter ="";
-
-    if (attribute==="servers") filter = "hostname_s";
-    if (attribute==="pools") filter = "pool_s";
-    if (attribute==="cores") filter = "coreName_s";
-    if (attribute==="ports") filter = "port_i";
-
-    http.get(prepareHttpRequest(createListRequest(req, filter)), function (resp){
-      listJsonResponse(res, resp, filter);
-    }).on("error", function(e){
-        console.log(e);
-      });
-  },
-  dispatchRealtime: function (req, res) {
-    var attribute = req.params.attribute;
-    var filter ="";
-
-    // if (attribute==="servers") filter = "hostname_s";
-    // if (attribute==="pools") filter = "pool_s";
-    // if (attribute==="cores") filter = "coreName_s";
-    // if (attribute==="ports") filter = "port_i";
-
-    http.get(prepareRealtimeHttpRequest(createSolrRealtimeRequest(req, filter)), function (resp){
-      realtimeJsonResponse(res, resp, filter);
-    }).on("error", function(e){
-        console.log(e);
-      });
-  },
-  dispatchPool: function (req, res) {
-
-    var information = req.params.information;
-    var attribute = req.params.attribute;
-    var filter,jsonFieldWithValue;
-    var integral = false;
-
-    if (information == 'avg'){
-      filter = thothFieldsMappings.avg[attribute];
-      jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
-    }
-
-    
-    if (information == 'count'){
-      filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
-      jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
-    }
-
-    if (information == 'integral'){
-      filter = thothFieldsMappings.integral[attribute];
-      jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
-      integral = true;
-    }
-
-    http.get(prepareHttpRequest(createSolrPoolRequest(req, filter)), function (resp) {
-      poolJsonResponse(res, resp, jsonFieldWithValue, integral);
-    }).on("error", function(e){
-        console.log(e);
-      });
-
-  },
-
-	dispatchServer: function(req,res){
-		var information = req.params.information;
-		var attribute = req.params.attribute;
-		var filter,jsonFieldWithValue;
-		var integral = false;
-
-    if (information == 'list'){
-
-      if (req.params.attribute == "slowqueries"){
-        filter = thothFieldsMappings.slowqueries;        
-      }
-      if (req.params.attribute == "exception"){
-        filter = thothFieldsMappings.exception;        
-      }
-
-      http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
-        prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
-      }).on("error", function(e){
-        console.log(e);
-      });   
-
-    } else {
-
-      if (information == 'avg'){
-        filter = thothFieldsMappings.avg[attribute];
-        jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
-      }
-
-      if (information == 'count'){
-        filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
-        jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
-      }
-
-      if (information == 'integral'){
-        filter = thothFieldsMappings.integral[attribute];
-        jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
-        integral = true;
-      }
-
-      if (information == 'distribution'){
-        filter = thothFieldsMappings.distribution[attribute];
-        jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
-      }
-
-    http.get(prepareHttpRequest(createSolrServerRequest(req, filter)), function (resp) {
-      prepareJsonResponse(res, resp, jsonFieldWithValue, integral);
-    }).on("error", function(e){
-      console.log(e);
-    });   
-
-    }
-  }
-
-};
 
