@@ -104,16 +104,23 @@ module.exports = {
 
       if (req.params.attribute == "slowqueries"){
         filter = thothFieldsMappings.slowqueries;        
-      }
-      if (req.params.attribute == "exception"){
-        filter = thothFieldsMappings.exception;        
-      }
-
       http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
         prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
       }).on("error", function(e){
         console.log(e);
       });   
+      }
+      if (req.params.attribute == "exception"){
+        filter = thothFieldsMappings.exception;        
+      http.get(prepareHttpRequest2(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
+        prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
+      }).on("error", function(e){
+        console.log(e);
+      });   
+      }
+
+
+
 
     } else {
 
@@ -589,7 +596,6 @@ function createListInfoServerRequest(req, filter){
     "start" : page*12
   };
     solrQueryInformation.fl =  filter +',date_dt' ;
-    // console.log(solrQueryInformation);
     return solrQueryInformation;
 }
 
@@ -684,6 +690,28 @@ function prepareHttpRequest(solrOptions){
 	}
 	requestOptions.path += querystring.stringify(solrQueryOptions);
 	return requestOptions;
+}
+function prepareHttpRequest2(solrOptions){
+  var requestOptions = {}
+
+  requestOptions.host = thoth_hostname;
+  requestOptions.port = thoth_port;
+  requestOptions.path = '/solr/collection1/select?';
+
+  var solrQueryOptions = {};
+  solrQueryOptions.wt = 'json';
+  solrQueryOptions.omitHeader = true
+
+  for (var key in solrOptions) {
+  if (solrOptions.hasOwnProperty(key)) {
+    var value = solrOptions[key];
+    if (value != null ){
+      solrQueryOptions[key] = value ;
+    }
+  }
+  }
+  requestOptions.path += querystring.stringify(solrQueryOptions);
+  return requestOptions;
 }
 
 
