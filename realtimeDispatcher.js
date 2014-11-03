@@ -83,7 +83,8 @@ function createSolrRealtimeRequest(filter){
   var solrQueryInformation = {
     'q': 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND NOT exception_b:true AND port_i:' + port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
     'rows': 1,
-    'nocache': Math.random()
+    'nocache': Math.random(),
+    'sort': 'timestamp_dt desc'
   };
   solrQueryInformation.fl =  filter +',qtime_i,timestamp_dt' ;
   return solrQueryInformation;
