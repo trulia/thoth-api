@@ -44,17 +44,17 @@ module.exports = {
     var filter,jsonFieldWithValue;
     var integral = false;
 
-    if (information == 'avg') {
+    if (information === 'avg') {
       filter = thothFieldsMappings.avg[attribute];
       jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
     }
 
-    if (information == 'count') {
+    if (information === 'count') {
       filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
       jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
     }
 
-    if (information == 'integral') {
+    if (information === 'integral') {
       filter = thothFieldsMappings.integral[attribute];
       jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
       integral = true;
@@ -74,9 +74,9 @@ module.exports = {
     var filter,jsonFieldWithValue;
     var integral = false;
 
-    if (information == 'list') {
+    if (information === 'list') {
 
-      if (req.params.attribute == 'slowqueries') {
+      if (req.params.attribute === 'slowqueries') {
         filter = thothFieldsMappings.slowqueries;
         http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
           prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
@@ -84,7 +84,7 @@ module.exports = {
           console.log(e);
         });
       }
-      if (req.params.attribute == 'exception') {
+      if (req.params.attribute === 'exception') {
         filter = thothFieldsMappings.exception;
         http.get(prepareHttpRequest2(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
           prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
@@ -95,23 +95,23 @@ module.exports = {
 
     } else {
 
-      if (information == 'avg') {
+      if (information === 'avg') {
         filter = thothFieldsMappings.avg[attribute];
         jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
       }
 
-      if (information == 'count') {
+      if (information === 'count') {
         filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
         jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
       }
 
-      if (information == 'integral') {
+      if (information === 'integral') {
         filter = thothFieldsMappings.integral[attribute];
         jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
         integral = true;
       }
 
-      if (information == 'distribution') {
+      if (information === 'distribution') {
         filter = thothFieldsMappings.distribution[attribute];
         jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
       }
@@ -152,7 +152,7 @@ function pushIfNotPresent(element, array) {
  */
 function poolJsonResponse(backendResp, resp, attribute, integral) {
   try{
-    var data ='';
+    var data = '';
     // Fetch data
     resp.on('data', function(chunk) {
       data += chunk;
@@ -174,7 +174,7 @@ function poolJsonResponse(backendResp, resp, attribute, integral) {
           pushIfNotPresent(hostname, servers);
         }
 
-        for (var i=0; i<servers.length; i++){
+        for (i=0; i<servers.length; i++){
           var val =  [];
           for (var j=0; j<docs.length;j++){
 
@@ -253,8 +253,8 @@ function listJsonResponse(backendResp, resp, attribute){
  */
 function prepareJsonResponse(backendResp, resp, attribute, integral){
   try{
-    var data ='';
-    var blob = '';
+    var data = '',
+      blob = '';
     // Fetch data
     resp.on('data', function(chunk){
       data += chunk;
@@ -277,7 +277,7 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
           }
           if (integral) {
             var c = 0;
-            for (var i=0;i<blob.length;i++){
+            for (var i=0; i<blob.length; i++){
               blob[i].timestamp = blob[i]['masterTime_dt'];
               delete blob[i]['masterTime_dt'];
               c += blob[i][attribute];
@@ -286,7 +286,7 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
             }
 
           } else {
-            for (var i=0;i<blob.length;i++){
+            for (var i=0; i<blob.length; i++){
               blob[i].timestamp = blob[i]['masterTime_dt'];
               delete blob[i]['masterTime_dt'];
               blob[i].value = blob[i][attribute];
@@ -295,10 +295,10 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
           }
 
         }
-        else  if (numberOfAttributes == 2) {
-          if (attribute[0].indexOf(',') == -1) blob = addValueIfNull(docs, attribute[0], 0 ) ;
+        else  if (numberOfAttributes === 2) {
+          if (attribute[0].indexOf(',') === -1) blob = addValueIfNull(docs, attribute[0], 0 ) ;
           else blob = docs;
-          for (var i=0;i<blob.length;i++){
+          for (var i=0; i<blob.length; i++){
             blob[i].timestamp = blob[i]['masterTime_dt'];
             delete blob[i]['masterTime_dt'];
             blob[i].value = blob[i][attribute[0]];
@@ -307,9 +307,9 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
             delete blob[i][attribute[1]];
           }
         }
-        else if (numberOfAttributes == 4){
+        else if (numberOfAttributes === 4){
           blob = docs;
-          for (var i=0;i<blob.length;i++){
+          for (var i=0; i<blob.length; i++){
             blob[i].timestamp = blob[i]['masterTime_dt'];
             delete blob[i]['masterTime_dt'];
             blob[i].between_0_10 = blob[i][attribute[0]];
@@ -350,8 +350,8 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
  */
 function prepareListInfoJsonResponse(backendResp, resp, attribute, integral){
   try{
-    var data ='';
-    var blob = '';
+    var data ='',
+      blob = '';
     // Fetch data
     resp.on('data', function(chunk){
       data += chunk;
@@ -365,7 +365,7 @@ function prepareListInfoJsonResponse(backendResp, resp, attribute, integral){
         var numFound = json.numFound;
         blob = docs;
         // console.log(blob);
-        for (var i=0;i<blob.length;i++){
+        for (var i=0; i<blob.length; i++){
           blob[i].timestamp = blob[i]['date_dt'];
           delete blob[i]['date_dt'];
           delete blob[i]['timestamp_dt'];
@@ -438,7 +438,7 @@ function createListInfoServerRequest(req, filter){
 
   var listType;
   var sortParam;
-  if (attribute == 'slowqueries'){
+  if (attribute === 'slowqueries'){
     listType = 'slowQueryDocument_b';
     sortParam = 'qtime_i desc';
   } else{
