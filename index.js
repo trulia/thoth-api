@@ -6,17 +6,21 @@
 
 require('./environment')();
 
-var express = require('express');
-
+var app = require('express')();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 var dispatcher = require('./dispatchers');
 
-var app = express()
-  , http = require('http')
-  , server = http.createServer(app)
-  , io = require('socket.io').listen(server);
+io.on('connection', function(socket){
+  module.exports.io = io;
+  realtimeDispatcher = require('./realtimeDispatcher');
 
-server.listen(process.env.PORT);
+  //io.emit('sending data', dispatcher.getUpdatesFromRealTimeData());
+  realtimeDispatcher.pollRealTimeData();
 
+});
+
+http.listen(process.env.PORT);
 
 /**
  * Routes available
@@ -31,7 +35,6 @@ app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:inform
   dispatcher.dispatch(req, res, 'server')
 });
 
-
 // Pools
 app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
   dispatcher.dispatch(req, res, 'pool')
@@ -39,12 +42,5 @@ app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:informatio
 
 // Infos
 app.get('/api/list/:attribute', function (req, res) {
-  dispatcher.dispatch(req, res, 'list')
+  dispatcher.dispatch(req, res, 'list');
 });
-
-// Infos
-app.get('/api/realtime/:server/core/:core/port/:port/:information/:attribute', function (req, res) {
-  dispatcher.dispatch(req, res, 'realtime')
-});
-
-

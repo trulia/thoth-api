@@ -12,12 +12,15 @@
     "api",
     "node"
   ],
-    "dependencies": {
-      "express": ">=3.0.6",
-      "socket.io": ">=0.9.13",
-      "nodemon":"=1.0.17",
-      "chai":"=1.9.1"
-  },  
+  "dependencies": {
+    "express": ">=3.0.6",
+    "socket.io": "~1.1.0",
+    "nodemon": "=1.0.17",
+    "chai": "=1.9.1"
+  },
   "author": "Damiano Braga",
-  "license": "BSD"
+  "license": "BSD",
+  "devDependencies": {
+    "socket.io": "~1.1.0"
+  }
 }
