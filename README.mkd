@@ -1,6 +1,6 @@
-|     ![Thoth](/../master/img/thoth-logo.png?raw=true)    |            Thoth Api|
-| ------------- |:-------------:|
-
+<img align="left" src="thoth.png?raw=true">  &nbsp;&nbsp; Thoth API
+======================
+<br><br>
 
 A rest-like api that provides an easy query and retrieval of information from Thoth
 
