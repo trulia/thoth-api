@@ -9,24 +9,26 @@ var io = require('./index').io;
 var thoth_hostname = process.env.THOTH_HOST;
 var thoth_port = process.env.THOTH_PORT;
 
+var realTimeQueryParams;
+
 module.exports = {
 
   /**
    * pollRealTimeData
    * Query solr and pull real time data for the given params
    */
-  pollRealTimeData: function() {
+  pollRealTimeData: function(queryParams) {
+    setQueryParams(queryParams);
     pollQTimeData();
     pollExceptionsData();
     pollZeroHitsData();
     pollNQueriesData();
   }
-
 };
 
 function pollQTimeData() {
   var filter ='';
-  http.get(prepareRealtimeHttpRequest(createSolrQTimeRequest(filter)), function(resp) {
+  http.get(prepareRealtimeHttpRequest(createSolrQTimeRequest(realTimeQueryParams, filter)), function(resp) {
     qTimeJsonResponse(resp, filter);
   }).on('error', function(e){
     console.log('Error while trying to get qTime real time data: ', e);
@@ -35,7 +37,7 @@ function pollQTimeData() {
 
 function pollExceptionsData() {
   var filter ='';
-  http.get(prepareRealtimeHttpRequest(createSolrNExceptionRequest(filter)), function(resp) {
+  http.get(prepareRealtimeHttpRequest(createSolrNExceptionRequest(realTimeQueryParams, filter)), function(resp) {
     nExceptionsJsonResponse(resp, filter);
   }).on('error', function(e){
     console.log('Error while trying to get exceptions real time data: ', e);
@@ -44,7 +46,7 @@ function pollExceptionsData() {
 
 function pollZeroHitsData() {
   var filter ='';
-  http.get(prepareRealtimeHttpRequest(createSolrZeroHitRequest(filter)), function(resp) {
+  http.get(prepareRealtimeHttpRequest(createSolrZeroHitRequest(realTimeQueryParams, filter)), function(resp) {
     zeroHitJsonResponse(resp, filter);
   }).on('error', function(e){
     console.log('Error while trying to get zero hits real time data: ', e);
@@ -53,7 +55,7 @@ function pollZeroHitsData() {
 
 function pollNQueriesData() {
   var filter ='';
-  http.get(prepareRealtimeHttpRequest(createSolrNQueriesRequest(filter)), function(resp) {
+  http.get(prepareRealtimeHttpRequest(createSolrNQueriesRequest(realTimeQueryParams, filter)), function(resp) {
     nQueriesJsonResponse(resp, filter);
   }).on('error', function(e){
     console.log('Error while trying to get zero hits real time data: ', e);
@@ -220,15 +222,14 @@ function nQueriesJsonResponse(resp, filter){
 
 /**
  * createSolrQTimeRequest
+ * @param queryParams
  * @param filter
  * @returns Object
  */
-function createSolrQTimeRequest(filter){
-  var server = 'search501';
-  var core = 'active';
-  var port = '8050';
+function createSolrQTimeRequest(queryParams, filter){
+
   var solrQueryInformation = {
-    'q': 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND NOT exception_b:true AND port_i:' + port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
+    'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
     'rows': 1,
     'nocache': Math.random(),
     'sort': 'timestamp_dt desc'
@@ -240,32 +241,31 @@ function createSolrQTimeRequest(filter){
 
 /**
  * createSolrNExceptionRequest
+ * @param queryParams
  * @param filter
  * @returns Object
  */
-function createSolrNExceptionRequest(filter){
-  var server = 'search501';
-  var core = 'active';
-  var port = '8050';
+function createSolrNExceptionRequest(queryParams, filter){
+
   var solrQueryInformation = {
-    'q': 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND exception_b:true AND port_i:' + port +' AND timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
+    'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND exception_b:true AND port_i:' + queryParams.port +' AND timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
     'rows': 0,
     'nocache': Math.random()
   };
+
   solrQueryInformation.fl =  filter ;
   return solrQueryInformation;
 }
 /**
  * createSolrZeroHitRequest
+ * @param queryParams
  * @param filter
  * @returns Object
  */
-function createSolrZeroHitRequest(filter){
-  var server = 'search501';
-  var core = 'active';
-  var port = '8050';
+function createSolrZeroHitRequest(queryParams, filter){
+
   var solrQueryInformation = {
-    'q': 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND NOT exception_b:true AND port_i:' + port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] AND hits_i:0',
+    'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] AND hits_i:0',
     'rows': 0,
     'nocache': Math.random()
   };
@@ -276,15 +276,14 @@ function createSolrZeroHitRequest(filter){
 
 /**
  * createSolrZeroHitRequest
+ * @param queryParams
  * @param filter
  * @returns Object
  */
-function createSolrNQueriesRequest(filter){
-  var server = 'search501';
-  var core = 'active';
-  var port = '8050';
+function createSolrNQueriesRequest(queryParams, filter){
+
   var solrQueryInformation = {
-    'q': 'hostname_s:' + server + ' AND coreName_s:' + core + ' AND port_i:' + port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] ',
+    'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND port_i:' + queryParams.port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] ',
     'rows': 0,
     'nocache': Math.random()
   };
@@ -298,7 +297,7 @@ function createSolrNQueriesRequest(filter){
  * @param solrOptions
  * @returns {{}}
  */
-function prepareRealtimeHttpRequest(solrOptions){
+function prepareRealtimeHttpRequest(solrOptions) {
   var requestOptions = {};
 
   requestOptions.host = thoth_hostname;
@@ -319,4 +318,8 @@ function prepareRealtimeHttpRequest(solrOptions){
   }
   requestOptions.path += querystring.stringify(solrQueryOptions);
   return requestOptions;
+}
+
+function setQueryParams(queryParams) {
+  realTimeQueryParams = queryParams;
 }

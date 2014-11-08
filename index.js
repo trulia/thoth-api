@@ -12,12 +12,12 @@ var io = require('socket.io')(http);
 var dispatcher = require('./dispatchers');
 
 io.on('connection', function(socket){
-  module.exports.io = io;
-  realtimeDispatcher = require('./realtimeDispatcher');
+  socket.on('queryParams', function(queryParams) {
 
-  //io.emit('sending data', dispatcher.getUpdatesFromRealTimeData());
-  realtimeDispatcher.pollRealTimeData();
-
+    module.exports.io = io;
+    var realtimeDispatcher = require('./realtimeDispatcher');
+    realtimeDispatcher.pollRealTimeData(queryParams);
+  });
 });
 
 http.listen(process.env.PORT);
