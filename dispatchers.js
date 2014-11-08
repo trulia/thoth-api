@@ -224,8 +224,8 @@ function listJsonResponse(backendResp, resp, attribute){
         json = JSON.parse(data).facet_counts;
         var facet_fields = json.facet_fields[attribute];
         var list = [];
-        for (var i=0;i<facet_fields.length;i++){
-          if (i%2 === 0) list.push(facet_fields[i]);
+        for (var i = 0; i < facet_fields.length; i++){
+          if (i % 2 === 0) list.push(facet_fields[i]);
         }
         // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
         backendResp.header('Access-Control-Allow-Origin', '*');
