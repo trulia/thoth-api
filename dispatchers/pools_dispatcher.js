@@ -8,6 +8,11 @@ var poolsResponse   = require('./../endpoints/pools/pools_response');
 
 module.exports = {
 
+  /**
+   * dispatchPool
+   * @param req
+   * @param res
+   */
   dispatchPool: function (req, res) {
     var self = this;
     var information = req.params.information;

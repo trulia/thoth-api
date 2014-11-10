@@ -10,6 +10,12 @@ var listResponse      = require('./../endpoints/servers/list_response');
 
 module.exports = {
 
+  /**
+   * dispatchServer
+   * Based on a request param, decides if getting standard server data or slowqueries/exceptions
+   * @param req
+   * @param res
+   */
   dispatchServer: function(req,res) {
     var self = this;
     var information = req.params.information;
