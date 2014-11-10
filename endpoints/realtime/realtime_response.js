@@ -34,9 +34,7 @@ module.exports = {
               graphicData['qtime'].push({ "timestamp": Date.parse(doc['timestamp_dt']),  "value": doc['qtime_i'] });
             });
           }
-          io.emit('new realtime data', graphic);
-
-          console.log('new realt data', realtimeDispatcher);
+          io.emit('new realtime data', graphicData);
           setTimeout(require('./../../dispatchers/realtime_dispatcher').pollQTimeData, 1500);
         } catch(err) {
           var error =  { "error": 'Data not found. Most probably wrong query was sent to the thoth index' + err};
