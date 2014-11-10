@@ -1,4 +1,4 @@
-<img align="left" src="thoth.png?raw=true">  &nbsp;&nbsp; Thoth API
+<img align="left" src="assets/img/thoth.png?raw=true">  &nbsp;&nbsp; Thoth API
 ======================
 <br><br>
 
