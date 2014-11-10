@@ -3,14 +3,16 @@ require('./environment')();
 
 var httpRequestHelper = require('./helpers/http_request');
 var http = require('http');
+var poolDispatcher = require('./dispatchers/pools_dispatcher');
 
 module.exports = {
+
   dispatch: function(req, res, entity) {
     if (entity === 'server') {
       this.dispatchServer(req, res);
     }
     if (entity === 'pool') {
-      this.dispatchPool(req, res);
+      poolDispatcher.dispatchPool(req, res);
     }
     if (entity === 'list') {
       this.dispatchList(req, res);
@@ -19,46 +21,15 @@ module.exports = {
 
   dispatchList: function (req, res) {
     var attribute = req.params.attribute;
-    var filter ='';
+    var filter = '';
 
     if (attribute === 'servers') filter = 'hostname_s';
     if (attribute === 'pools') filter = 'pool_s';
     if (attribute === 'cores') filter = 'coreName_s';
     if (attribute === 'ports') filter = 'port_i';
 
-
     http.get(httpRequestHelper.prepareHttpRequest(createListRequest(req, filter), '/solr/shrank/select?'), function(resp) {
       listJsonResponse(res, resp, filter);
-    }).on('error', function(e) {
-      console.log(e);
-    });
-  },
-
-  dispatchPool: function (req, res) {
-
-    var information = req.params.information;
-    var attribute = req.params.attribute;
-    var filter,jsonFieldWithValue;
-    var integral = false;
-
-    if (information === 'avg') {
-      filter = thothFieldsMappings.avg[attribute];
-      jsonFieldWithValue = [thothFieldsMappings.avg[attribute]];
-    }
-
-    if (information === 'count') {
-      filter = thothFieldsMappings.count[attribute] + ',tot-count_i';
-      jsonFieldWithValue = [thothFieldsMappings.count[attribute],'tot-count_i'];
-    }
-
-    if (information === 'integral') {
-      filter = thothFieldsMappings.integral[attribute];
-      jsonFieldWithValue = [thothFieldsMappings.integral[attribute]];
-      integral = true;
-    }
-
-    http.get(httpRequestHelper.prepareHttpRequest(createSolrPoolRequest(req, filter), '/solr/shrank/select?'), function (resp) {
-      poolJsonResponse(res, resp, jsonFieldWithValue, integral);
     }).on('error', function(e) {
       console.log(e);
     });
@@ -123,84 +94,6 @@ module.exports = {
 };
 
 /**
- * pushIfNotPresent
- * @param element
- * @param array
- * @returns {*}
- */
-function pushIfNotPresent(element, array) {
-  var present = false;
-  var arr = array;
-  for (var i=0;i<array.length;i++) {
-    if (array[i]==element) present = true;
-  }
-  if (!present) {
-    arr.push(element);
-  }
-  return arr;
-}
-
-/**
- * poolJsonResponse
- * @param backendResp
- * @param resp
- * @param attribute
- * @param integral
- */
-function poolJsonResponse(backendResp, resp, attribute, integral) {
-  try{
-    var data = '';
-    // Fetch data
-    resp.on('data', function(chunk) {
-      data += chunk;
-    });
-    // Parse and fix data
-    resp.on('end', function(){
-      try {
-        // Get only the docs
-        json = JSON.parse(data).response;
-
-        var docs = json.docs,
-          servers = [],
-          info = [],
-          tot = [];
-
-
-        for (var i=0; i<docs.length;i++){
-          var hostname = docs[i]['hostname_s'];
-          pushIfNotPresent(hostname, servers);
-        }
-
-        for (i=0; i<servers.length; i++){
-          var val =  [];
-          for (var j=0; j<docs.length;j++){
-
-            if (docs[j]['hostname_s'] == servers[i]){
-              var value = docs[j][attribute];
-              var timestamp = docs[j]['masterTime_dt'];
-              val.push([timestamp, value]);
-            }
-          }
-          tot.push({'key': servers[i], 'values': val});
-        }
-        // Avoid CORS http://en.wikipedia.org/wiki/Cross-origin_resource_sharing
-        backendResp.header('Access-Control-Allow-Origin', '*');
-        // backendResp.header('Access-Control-Allow-Headers', 'X-Requested-With');
-
-        backendResp.json(
-          tot
-        );
-      } catch(err){
-        backendResp.status(404).send('Data not found. Most probably wrong query was sent to the thoth index' + err);
-      }
-    });
-  }
-  catch(err){
-    backendResp.status(503).send('Thoth index not available' + err);
-  }
-}
-
-/**
  * listJsonResponse
  * @param backendResp
  * @param resp
@@ -218,7 +111,7 @@ function listJsonResponse(backendResp, resp, attribute){
     resp.on('end', function(){
       try {
         // Get only the docs
-        json = JSON.parse(data).facet_counts;
+        var json = JSON.parse(data).facet_counts;
         var facet_fields = json.facet_fields[attribute];
         var list = [];
         for (var i = 0; i < facet_fields.length; i++){
@@ -260,7 +153,7 @@ function prepareJsonResponse(backendResp, resp, attribute, integral){
     resp.on('end', function(){
       try {
         // Get only the docs
-        json = JSON.parse(data).response;
+        var json = JSON.parse(data).response;
         var docs = json.docs;
         var numFound = json.numFound;
         var numberOfAttributes = attribute.length;
@@ -357,7 +250,7 @@ function prepareListInfoJsonResponse(backendResp, resp, attribute, integral){
     resp.on('end', function(){
       try {
         // // Get only the docs
-        json = JSON.parse(data).response;
+        var json = JSON.parse(data).response;
         var docs = json.docs;
         var numFound = json.numFound;
         blob = docs;
@@ -471,28 +364,6 @@ function createListRequest(req, filter){
 }
 
 /**
- * createSolrPoolRequest
- * @param req
- * @param filter
- * @returns {{q: string, rows: number, sort: string}}
- */
-function createSolrPoolRequest(req, filter){
-  var pool = req.params.pool;
-  var core = req.params.core;
-  var port = req.params.port;
-  var start = req.params.start;
-  var end = req.params.end;
-  var solrQueryInformation = {
-    'q': 'masterDocumentMin_b:true AND pool_s:' + pool + ' AND coreName_s:' + core + ' AND port_i:' + port + ' AND masterTime_dt:[' + start +' TO ' + end +'] ',
-    'rows': 10000,
-    'sort': 'masterTime_dt asc'
-  };
-  solrQueryInformation.fl =  filter +',masterTime_dt,hostname_s' ;
-  // console.log(solrQueryInformation);
-  return solrQueryInformation;
-}
-
-/**
  * Creates a zero value for a json property
  * @param  json a json array
  * @param  propertyToCheck property that must have a defined value
@@ -505,5 +376,4 @@ function addValueIfNull(json, propertyToCheck, valueToAdd){
     }
   }
   return json;
-
 }
