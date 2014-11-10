@@ -9,7 +9,7 @@ module.exports = {
   createSolrQTimeRequest: function(queryParams, filter){
 
     var solrQueryInformation = {
-      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
+      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' AND timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]',
       'rows': 1,
       'nocache': Math.random(),
       'sort': 'timestamp_dt desc'
@@ -46,7 +46,7 @@ module.exports = {
   createSolrZeroHitRequest: function(queryParams, filter){
 
     var solrQueryInformation = {
-      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] AND hits_i:0',
+      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND NOT exception_b:true AND port_i:' + queryParams.port +' AND timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] AND hits_i:0',
       'rows': 0,
       'nocache': Math.random()
     };
@@ -64,7 +64,7 @@ module.exports = {
   createSolrNQueriesRequest: function(queryParams, filter) {
 
     var solrQueryInformation = {
-      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND port_i:' + queryParams.port + ' timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND] ',
+      'q': 'hostname_s:' + queryParams.server + ' AND coreName_s:' + queryParams.core + ' AND port_i:' + queryParams.port + ' AND timestamp_dt:[NOW/SECOND-1SECOND TO NOW/SECOND]  ',
       'rows': 0,
       'nocache': Math.random()
     };
