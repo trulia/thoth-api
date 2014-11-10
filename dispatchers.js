@@ -1,23 +1,19 @@
-require('./fieldsMapping')();
+require('./fields_mapping')();
 require('./environment')();
 
+var httpRequestHelper = require('./helpers/http_request');
 var http = require('http');
-var querystring = require('querystring');
-
-// Thoth configuration
-var thoth_hostname = process.env.THOTH_HOST;
-var thoth_port = process.env.THOTH_PORT;
 
 module.exports = {
   dispatch: function(req, res, entity) {
     if (entity === 'server') {
-      module.exports.dispatchServer(req, res);
+      this.dispatchServer(req, res);
     }
     if (entity === 'pool') {
-      module.exports.dispatchPool(req, res);
+      this.dispatchPool(req, res);
     }
     if (entity === 'list') {
-      module.exports.dispatchList(req, res);
+      this.dispatchList(req, res);
     }
   },
 
@@ -30,7 +26,8 @@ module.exports = {
     if (attribute === 'cores') filter = 'coreName_s';
     if (attribute === 'ports') filter = 'port_i';
 
-    http.get(prepareHttpRequest(createListRequest(req, filter)), function(resp) {
+
+    http.get(httpRequestHelper.prepareHttpRequest(createListRequest(req, filter), '/solr/shrank/select?'), function(resp) {
       listJsonResponse(res, resp, filter);
     }).on('error', function(e) {
       console.log(e);
@@ -60,7 +57,7 @@ module.exports = {
       integral = true;
     }
 
-    http.get(prepareHttpRequest(createSolrPoolRequest(req, filter)), function (resp) {
+    http.get(httpRequestHelper.prepareHttpRequest(createSolrPoolRequest(req, filter), '/solr/shrank/select?'), function (resp) {
       poolJsonResponse(res, resp, jsonFieldWithValue, integral);
     }).on('error', function(e) {
       console.log(e);
@@ -78,7 +75,7 @@ module.exports = {
 
       if (req.params.attribute === 'slowqueries') {
         filter = thothFieldsMappings.slowqueries;
-        http.get(prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
+        http.get(httpRequestHelper.prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page), '/solr/shrank/select?'), function (resp) {
           prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
         }).on('error', function(e) {
           console.log(e);
@@ -86,7 +83,7 @@ module.exports = {
       }
       if (req.params.attribute === 'exception') {
         filter = thothFieldsMappings.exception;
-        http.get(prepareHttpRequest2(createListInfoServerRequest(req, filter, req.params.page)), function (resp) {
+        http.get(httpRequestHelper.prepareHttpRequest(createListInfoServerRequest(req, filter, req.params.page), '/solr/collection1/select?'), function (resp) {
           prepareListInfoJsonResponse(res, resp, req.params.attribute, integral);
         }).on('error', function(e) {
           console.log(e);
@@ -116,7 +113,7 @@ module.exports = {
         jsonFieldWithValue = thothFieldsMappings.distribution[attribute].split(',');
       }
 
-      http.get(prepareHttpRequest(createSolrServerRequest(req, filter)), function (resp) {
+    http.get(httpRequestHelper.prepareHttpRequest(createSolrServerRequest(req, filter), '/solr/shrank/select?'), function (resp) {
         prepareJsonResponse(res, resp, jsonFieldWithValue, integral);
       }).on('error', function(e) {
         console.log(e);
@@ -508,61 +505,5 @@ function addValueIfNull(json, propertyToCheck, valueToAdd){
     }
   }
   return json;
-}
 
-/**
- * prepareHttpRequest
- * @param solrOptions
- * @returns {{}}
- */
-function prepareHttpRequest(solrOptions){
-
-  var requestOptions = {};
-
-  requestOptions.host = thoth_hostname;
-  requestOptions.port = thoth_port;
-  requestOptions.path = '/solr/shrank/select?';
-
-  var solrQueryOptions = {};
-  solrQueryOptions.wt = 'json';
-  solrQueryOptions.omitHeader = true;
-
-  for (var key in solrOptions) {
-    if (solrOptions.hasOwnProperty(key)) {
-      var value = solrOptions[key];
-      if (value != null ){
-        solrQueryOptions[key] = value ;
-      }
-    }
-  }
-  requestOptions.path += querystring.stringify(solrQueryOptions);
-  return requestOptions;
-}
-
-/**
- * prepareHttpRequest2
- * @param solrOptions
- * @returns {{}}
- */
-function prepareHttpRequest2(solrOptions){
-  var requestOptions = {};
-
-  requestOptions.host = thoth_hostname;
-  requestOptions.port = thoth_port;
-  requestOptions.path = '/solr/collection1/select?';
-
-  var solrQueryOptions = {};
-  solrQueryOptions.wt = 'json';
-  solrQueryOptions.omitHeader = true;
-
-  for (var key in solrOptions) {
-    if (solrOptions.hasOwnProperty(key)) {
-      var value = solrOptions[key];
-      if (value != null ){
-        solrQueryOptions[key] = value ;
-      }
-    }
-  }
-  requestOptions.path += querystring.stringify(solrQueryOptions);
-  return requestOptions;
 }

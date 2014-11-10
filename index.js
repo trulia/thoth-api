@@ -11,15 +11,17 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var dispatcher = require('./dispatchers');
 
+// Setup websocket for real time data flow
 io.on('connection', function(socket){
   socket.on('queryParams', function(queryParams) {
 
     module.exports.io = io;
-    var realtimeDispatcher = require('./realtimeDispatcher');
+    var realtimeDispatcher = require('./dispatchers/realtime_dispatcher');
     realtimeDispatcher.pollRealTimeData(queryParams);
   });
 });
 
+// Start node server
 http.listen(process.env.PORT);
 
 /**
