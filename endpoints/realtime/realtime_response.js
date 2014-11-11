@@ -11,9 +11,6 @@ module.exports = {
     try {
       var self = this;
       var data = '';
-
-      console.log();
-
       // Fetch data
       resp.on('data', function(chunk){
         data += chunk;
@@ -73,10 +70,10 @@ module.exports = {
             // Initialize the graphic object
             var graphicData = { "exception":[]};
             graphicData['exception'].push({ "timestamp": Date.now(),  "value": response.numFound });
-
             io.emit('new realtime data', graphicData);
-            setTimeout(require('./../../dispatchers/realtime_dispatcher').pollExceptionsData, 1500);
           }
+          setTimeout(require('./../../dispatchers/realtime_dispatcher').pollExceptionsData, 1500);
+
         } catch(err) {
           var error =  { "error": 'Data not found. Most probably wrong query was sent to the thoth index' + err};
           io.emit('error in realtime response', error);
@@ -115,8 +112,8 @@ module.exports = {
             graphicData['zeroHits'].push({"timestamp": Date.now(), "value": response.numFound});
 
             io.emit('new realtime data', graphicData);
-            setTimeout(require('./../../dispatchers/realtime_dispatcher').pollZeroHitsData, 1500);
           }
+        setTimeout(require('./../../dispatchers/realtime_dispatcher').pollZeroHitsData, 1500);
         } catch(err) {
           var error =  { "error": 'Data not found. Most probably wrong query was sent to the thoth index' + err};
           io.emit('error in realtime response', error);
@@ -156,8 +153,8 @@ module.exports = {
             graphicData['nqueries'].push({"timestamp": Date.now(), "value": response.numFound});
 
             io.emit('new realtime data', graphicData);
-            setTimeout(require('./../../dispatchers/realtime_dispatcher').pollNQueriesData, 1500);
           }
+        setTimeout(require('./../../dispatchers/realtime_dispatcher').pollNQueriesData, 1500);
         } catch(err) {
           var error =  { "error": 'Data not found. Most probably wrong query was sent to the thoth index' + err};
           io.emit('error in realtime response', error);
