@@ -1,147 +1,37 @@
-<img align="left" src="assets/img/thoth.png?raw=true">  &nbsp;&nbsp; Thoth API
+<img align="left" src="img/thoth.png?raw=true">  &nbsp;&nbsp; Thoth API
 ======================
 <br><br>
 
-A rest-like api that provides an easy query and retrieval of information from Thoth
+What is Thoth ?
+=====================
+**Thoth** is a real-time solr monitor and search analysis engine. It's a set of tools that can help you collect, visualize and leaverage data coming from your solr search infrastucture.
+Want to learn more? [See the Wiki](https://github.com/trulia/thoth/wiki)
 
-## Requirements
-- Thoth
+Thoth API
+======================
+**Thoth API** is the module that is providing an abstraction of the data contined on the Thoth Index.
+<img src="img/thoth-api-schema.png?raw=true"> <br>
+For instructions on how to use this module, or a list of the other modules [See the Wiki](https://github.com/trulia/thoth-api/wiki)
 
-## Installation
-Clone the project
+Contributing
+=======================
+1. Fork it
+2. Create your feature/bug fix branch (git checkout -b my-new-feature)
+3. Commit your changes (git commit -am 'Add some feature')
+4. Push to the branch (git push origin my-new-feature)
+5. Create new pull request
 
-``` git clone git@github.com:dbraga/thoth-api.git ```
+Thoth Monitor - Contributors
+=======================
+- [Damiano Braga](https://github.com/dbraga)
+- [Giulio Grillanda](https://github.com/ingiulio)
+- [JD Cantrell](https://github.com/jdcantrell)
+- [Derek Reynolds](https://github.com/derekr)
 
-## Advanced configuration
+License
+=============
+Copyright (c) 2014 Trulia, Inc. See the LICENSE file for license rights and limitations.
 
-It's possible to set environment variables to change the default settings
-```
-  process.env.PORT = process.env.PORT || 3001;
-  process.env.THOTH_PORT = process.env.THOTH_PORT || '8983';
-  process.env.THOTH_HOST = process.env.THOTH_HOST || 'thoth';
-```
-
-## Usage
-
-Currently the api supports the retrieval of information for single servers or pool of servers. This is handled by two main routes
-
-1.```/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute```
-2.```/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute```
-
-- **:pool** name of the pool requested
-``` e.g:
-:pool = pool1 
-```
-- **:server** name of the server requested
-``` e.g:
-:server = server1
-```
-- **:core** core name for the server or the pool
-``` e.g:
-:core = collection1
-```
-- **:port** port number of the server or the pool
-``` e.g:
-:port = 8983
-```
-- **:start** **:end** timeframe where the information must be retrieved
-``` e.g:
-:start = NOW-1DAY  :end = NOW
-```
-
-More information about the date syntax could be found  [here](http://lucene.apache.org/solr/4_6_0/solr-core/org/apache/solr/util/DateMathParser.html)
-
-### Pools
-
-### Average information 
-Provides average data on a specific attribute
-```
-:information = avg
-```
-
-- qtime : average query time for the specific pool grouped by server 
-```
-:attribute = qtime
-```
-- nqueries : average number of queries for the specific pool grouped by server 
-```
-:attribute = nqueries
-```
-- queriesOnDeck: average number of queries on deck for the specific pool grouped by server
-```
-:attribute = queriesOnDeck
-```
-
-### Count information 
-Provides counts on a specific attribute
-```
-:information = count
-```
-
-- exception : number of exceptions
-```
-:attribute = exception
-```
-- hits : number of queries with zero hits 
-```
-:attribute = hits
-```
-
-### Server
-
-### Average information 
-Provides average data on a specific attribute
-```
-:information = avg
-```
-
-- qtime : average query time for the specific server 
-```
-:attribute = qtime
-```
-- nqueries : average number of queries for the specific server 
-```
-:attribute = nqueries
-```
-- queriesOnDeck: average number of queries for the specific server
-```
-:attribute = queriesOnDeck
-```
-
-### Count information 
-Provides counts on a specific attribute
-```
-:information = count
-```
-
-- exception : number of exceptions and total number of queries  
-```
-:attribute = exception
-```
-- hits : number of queries with zero hits and total number of queries
-```
-:attribute = hits
-```
-
-### Distribution information 
-Provides drill down counts on a specific attribute
-```
-:information = distribution
-```
-
-- qtime : distribution of queries in query time ranges : [ between 0ms and 10 ms, between 10 ms and 100 ms, between 100 ms and 1000 ms, over 1000 ms ]
-```
-:attribute = qtime
-```
-
-## Contributing
-
-- Fork it
-- Create your feature branch (git checkout -b my-new-feature)
-- Commit your changes (git commit -am 'Added some feature')
-- Push to the branch (git push origin my-new-feature)
-- Create new Pull Request
-
-## Author 
-Thoth-api is developed by [Damiano Braga](https://github.com/dbraga)
-
+Powered by
+=============
+<img align="left" src="img/powered-trulia-black.png?raw=true">
