@@ -12,6 +12,9 @@
     "api",
     "node"
   ],
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "express": ">=3.0.6",
     "socket.io": "~1.1.0",
