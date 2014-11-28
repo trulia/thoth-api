@@ -1,6 +1,6 @@
 /*
  * Rest api for thoth
- * 
+ *
  * @author Damiano Braga <damiano.braga@gmail.com>
  */
 
@@ -27,6 +27,7 @@ io.on('connection', function(socket){
 
 // Start node server
 http.listen(process.env.PORT);
+console.info('Server started at http://localhost:' + process.env.PORT);
 
 /**
  * Routes available
