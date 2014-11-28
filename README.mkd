@@ -9,7 +9,7 @@ Want to learn more? [See the Wiki](https://github.com/trulia/thoth/wiki)
 
 Thoth API
 ======================
-**Thoth API** is the module that is providing an abstraction of the data contined on the Thoth Index.
+The **Thoth API** module provides an abstraction for data contained in the Thoth Index.
 <img src="img/thoth-api-schema.png?raw=true"> <br>
 For instructions on how to use this module, or a list of the other modules [See the Wiki](https://github.com/trulia/thoth-api/wiki)
 
