@@ -13,6 +13,20 @@ Thoth API
 <img src="img/thoth-api-schema.png?raw=true"> <br>
 For instructions on how to use this module, or a list of the other modules [See the Wiki](https://github.com/trulia/thoth-api/wiki)
 
+Installation
+======================
+
+Make sure you have [node.js](http://nodejs.org) installed.
+
+```
+git clone git@github.com:trulia/thoth-api.git
+cd thoth-api
+npm install
+npm start // starts api web server
+```
+
+
+
 Contributing
 =======================
 1. Fork it
