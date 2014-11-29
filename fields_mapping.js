@@ -1,5 +1,5 @@
 module.exports = function () {
-  thothFieldsMappings = {
+  return {
     avg : {
       qtime: 'avg_qtime_d',
       nqueries: 'tot-count_i',
@@ -20,6 +20,6 @@ module.exports = function () {
     },
     slowqueries: 'params_s,qtime_i',
     exception: 'params_s,stackTrace_s'
-       
+
   };
 };

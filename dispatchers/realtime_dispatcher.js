@@ -1,5 +1,4 @@
-require('./../fields_mapping')();
-require('./../environment')();
+var thothFieldsMappings = require('./../fields_mapping')();
 
 var http = require('http');
 var querystring = require('querystring');
