@@ -9,6 +9,7 @@ require('./environment')();
 var app  = require('express')();
 var http = require('http').Server(app);
 var io   = require('socket.io')(http);
+var util = require('util');
 
 // Dispatchers
 var serversDispatcher = require('./dispatchers/servers_dispatcher');
@@ -32,22 +33,38 @@ console.info('Server started at http://localhost:' + process.env.PORT);
 /**
  * Routes available
  */
+var routeBase = [
+    '/api/%s/%s',
+    '/core/:core',
+    '/port/:port',
+    '/start/:start',
+    '/end/:end',
+    '/:information',
+    '/:attribute'
+].join();
 
-// Servers
-app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
+/**
+ * Servers
+ */
+var serverRoute = util.format(routeBase, 'server', ':server');
+app.get(serverRoute, function (req, res) {
   serversDispatcher.dispatchServer(req, res)
 });
 
-app.get('/api/server/:server/core/:core/port/:port/start/:start/end/:end/:information/:attribute/:page', function (req, res) {
+app.get(serverRoute + '/:page', function (req, res) {
   serversDispatcher.dispatchServer(req, res)
 });
 
-// Pools
-app.get('/api/pool/:pool/core/:core/port/:port/start/:start/end/:end/:information/:attribute', function (req, res) {
+/**
+ * Pools
+ */
+app.get(util.format(routeBase, 'pool', ':pool'), function (req, res) {
   poolsDispatcher.dispatchPool(req, res)
 });
 
-// Infos
+/**
+ * Info
+ */
 app.get('/api/list/:attribute', function (req, res) {
   listDispatcher.dispatchList(req, res);
 });
