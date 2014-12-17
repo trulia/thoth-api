@@ -41,7 +41,7 @@ var routeBase = [
     '/end/:end',
     '/:information',
     '/:attribute'
-].join();
+].join('');
 
 /**
  * Servers
